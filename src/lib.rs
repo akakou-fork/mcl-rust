@@ -4,12 +4,14 @@ extern crate alloc;
 
 use alloc::string::String;
 use alloc::vec::Vec;
+use base64;
 use core::mem::MaybeUninit;
 use core::ops::{Add, AddAssign};
 use core::ops::{Div, DivAssign};
 use core::ops::{Mul, MulAssign};
 use core::ops::{Sub, SubAssign};
 use core::primitive::str;
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 #[link(name = "mcl", kind = "static")]
 #[link(name = "mclbn384_256", kind = "static")]
@@ -240,6 +242,68 @@ macro_rules! serialize_impl {
     };
 }
 
+macro_rules! serde_serialize_impl {
+    ($t:ty, $size:expr, $visitor:ident) => {
+        struct $visitor {}
+
+        impl Serialize for $t {
+            fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+            where
+                S: Serializer,
+            {
+                let buf = self.serialize();
+
+                if serializer.is_human_readable() {
+                    let encoded = base64::encode(buf);
+                    serializer.collect_str(&encoded)
+                } else {
+                    let s = serializer.serialize_bytes(&buf)?;
+                    return Ok(s);
+                }
+            }
+        }
+
+        impl<'de> serde::de::Visitor<'de> for $visitor {
+            type Value = $t;
+
+            fn expecting(&self, formatter: &mut core::fmt::Formatter) -> core::fmt::Result {
+                formatter.write_str("failed to get format")
+            }
+
+            fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                let buf = base64::decode(v).expect("serde deserialize");
+                self.visit_bytes(&buf)
+            }
+
+            fn visit_bytes<E>(self, v: &[u8]) -> Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                let mut s = <$t>::zero();
+                let _result = s.deserialize(v);
+
+                Ok(s)
+            }
+        }
+
+        impl<'de> Deserialize<'de> for $t {
+            fn deserialize<D>(deserializer: D) -> Result<$t, D::Error>
+            where
+                D: Deserializer<'de>,
+            {
+                if deserializer.is_human_readable() {
+                    deserializer.deserialize_str($visitor {})
+                } else {
+                    deserializer.deserialize_bytes($visitor {})
+                }
+            }
+        }
+    };
+}
+
 macro_rules! str_impl {
     ($t:ty, $maxBufSize:expr, $get_str_fn:ident, $set_str_fn:ident) => {
         impl $t {
@@ -451,6 +515,7 @@ serialize_impl![
     mclBnFp_serialize,
     mclBnFp_deserialize
 ];
+serde_serialize_impl![Fp, mclBn_getFpByteSize(), FpVisitor];
 str_impl![Fp, 1024, mclBnFp_getStr, mclBnFp_setStr];
 int_impl![Fp, mclBnFp_setInt32, mclBnFp_isOne];
 base_field_impl![
@@ -478,6 +543,7 @@ serialize_impl![
     mclBnFp2_serialize,
     mclBnFp2_deserialize
 ];
+serde_serialize_impl![Fp2, mclBn_getFpByteSize() * 2, Fp2Visitor];
 str_impl![Fp2, 1024, mclBnFp2_getStr, mclBnFp2_setStr];
 add_op_impl![Fp2, mclBnFp2_add, mclBnFp2_sub, mclBnFp2_neg];
 field_mul_op_impl![Fp2, mclBnFp2_mul, mclBnFp2_div, mclBnFp2_inv, mclBnFp2_sqr];
@@ -505,6 +571,7 @@ serialize_impl![
     mclBnFr_serialize,
     mclBnFr_deserialize
 ];
+serde_serialize_impl![Fr, mclBn_getFrByteSize(), FrVisitor];
 str_impl![Fr, 1024, mclBnFr_getStr, mclBnFr_setStr];
 int_impl![Fr, mclBnFr_setInt32, mclBnFr_isOne];
 base_field_impl![
@@ -535,6 +602,7 @@ serialize_impl![
     mclBnG1_serialize,
     mclBnG1_deserialize
 ];
+serde_serialize_impl![G1, mclBn_getFpByteSize(), G1Visitor];
 str_impl![G1, 1024, mclBnG1_getStr, mclBnG1_setStr];
 add_op_impl![G1, mclBnG1_add, mclBnG1_sub, mclBnG1_neg];
 ec_impl![
@@ -560,6 +628,7 @@ serialize_impl![
     mclBnG2_serialize,
     mclBnG2_deserialize
 ];
+serde_serialize_impl![G2, mclBn_getFpByteSize() * 2, G2Visitor];
 str_impl![G2, 1024, mclBnG2_getStr, mclBnG2_setStr];
 add_op_impl![G2, mclBnG2_add, mclBnG2_sub, mclBnG2_neg];
 ec_impl![
@@ -582,6 +651,7 @@ serialize_impl![
     mclBnGT_serialize,
     mclBnGT_deserialize
 ];
+serde_serialize_impl![GT, mclBn_getFpByteSize() * 12, GTVisitor];
 str_impl![GT, 1024, mclBnGT_getStr, mclBnGT_setStr];
 int_impl![GT, mclBnGT_setInt32, mclBnGT_isOne];
 add_op_impl![GT, mclBnGT_add, mclBnGT_sub, mclBnGT_neg];
