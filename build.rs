@@ -26,6 +26,7 @@ fn main() {
     let clone_scripts = format!("git clone {} {}", MCL_REPOSITORY, MCL_FOLDER);
     let build_scripts = format!(
         "cd {} && make lib/libmcl.a lib/libmclbn384_256.a -j4 CXX=clang++",
+        // "cd {} && cmake CXX=clang+.&& make -j4 ",
         MCL_FOLDER
     );
 
@@ -35,4 +36,6 @@ fn main() {
 
     run_command(&build_scripts);
     println!("cargo:rustc-link-search={MCL_FOLDER}/lib");
+    println!("cargo:rustc-link-search=/usr/lib/arm/gcc-cross/arm-linux-gnueabi/8/");
+    // println!("cargo:rustc-link-lib=static=stdc++");
 }
