@@ -36,6 +36,6 @@ fn main() {
 
     run_command(&build_scripts);
     println!("cargo:rustc-link-search={MCL_FOLDER}/lib");
-    println!("cargo:rustc-link-search=/usr/lib/arm/gcc-cross/arm-linux-gnueabi/8/");
+    println!("cargo:rustc-link-search=/usr/lib/gcc-cross/arm-linux-gnueabi/8/");
     // println!("cargo:rustc-link-lib=static=stdc++");
 }
