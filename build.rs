@@ -1,19 +1,17 @@
 use std::process::Command;
 
 fn main() {
-    let opt = if cfg!(target_arch = "x86_64") {
-        ""
-    } else {
-        "-DCMAKE_CXX_COMPILER=clang++"
-    };
+    let url1 = "https://web.sfc.keio.ac.jp/~t19503ka/res/libmcl.a";
+    let url2 = "https://web.sfc.keio.ac.jp/~t19503ka/res/libmclbn384_256.a";
 
     let cmd = format!(
-        "mkdir -p build && cd build && cmake ../mcl -DMCL_STATIC_LIB=ON -DMCL_STANDALONE=ON {} && make -j",
-        opt
+        "mkdir -p build/ && cd build/ && wget {} {}",
+        url1, url2
     );
     Command::new("sh")
         .args(["-c", &cmd])
         .output()
         .expect("fail");
-    println!("cargo:rustc-link-search=native=./build/lib");
+    
+    println!("cargo:rustc-link-search=./build/");
 }
