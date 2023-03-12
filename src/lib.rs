@@ -13,7 +13,6 @@ use core::primitive::str;
 
 #[link(name = "mcl", kind = "static")]
 #[link(name = "mclbn384_256", kind = "static")]
-#[link(name = "stdc++")]
 #[allow(non_snake_case)]
 extern "C" {
     // global functions
