@@ -1,4 +1,5 @@
 debug/
+build/
 target/
 Cargo.lock
 **/*.rs.bk

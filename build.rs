@@ -1,6 +1,10 @@
 use std::process::Command;
+use std::env::var;
+
 
 fn main() {
+    let manifest_dir = var("CARGO_MANIFEST_DIR").unwrap();
+
     let opt = if cfg!(target_arch = "x86_64") {
         ""
     } else {
@@ -15,5 +19,9 @@ fn main() {
         .args(["-c", &cmd])
         .output()
         .expect("fail");
-    println!("cargo:rustc-link-search=native=./build/lib");
+    
+    println!("cargo:rustc-link-search={}/build", manifest_dir);
+    println!("cargo:rustc-link-lib=static=mclbn384_256");
+    println!("cargo:rustc-link-lib=static=mcl");
 }
+
